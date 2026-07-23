@@ -1,8 +1,7 @@
 #ifndef TASK_FAN_CONTROL_H
 #define TASK_FAN_CONTROL_H
 
-#include "Task_TempHumidMonitor.h"
-#include <Arduino.h>
+#include "Global.h"
 
 /**
  * Fan is broken so Serial Monitor is used as stand in

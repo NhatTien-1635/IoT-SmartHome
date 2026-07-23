@@ -2,6 +2,14 @@
 #include "Task_TempHumidMonitor.h"
 #include "Task_FanControl.h"
 
+/**
+ *  Initialize global variables 
+ **/
+SemaphoreHandle_t dht_semaphore = NULL;
+float temperature = 0.0;
+float humid = 0.0;
+int timer = 0;
+
 void setup() {
   Serial.begin(115200);
   dht_semaphore = xSemaphoreCreateBinary();

@@ -1,25 +1,32 @@
 #include "Task_FanControl.h"
 
-extern float temperature;
-extern float humid;
-
 void TaskFanControl(void* parameters) {
+    bool fan_state = false;
     while (1) {
         //Wait for signal from 'temp/himid monitor' task
         if (xSemaphoreTake(dht_semaphore, portMAX_DELAY) == pdTRUE) {
+            Serial.printf("\n[Time: %d] ", debug_timer++);
+
             if (isnan(temperature) || isnan(humid)) {
-                Serial.println("[DHT] Sensor read failed!");
+                Serial.printf("[DHT] Sensor read failed!");
                 vTaskDelay(1000);
                 continue;
             }
 
             Serial.printf("Temerature: %f, Humidity: %f", temperature, humid);
-            if (temperature > 32 || humid > 70) {
-                Serial.println("-> FAN ON");
+            if (temperature > 33 && humid > 70) {
+                fan_state = true;
             }
 
-            if (temperature < 28 || humid < 63) {
-                Serial.println("-> FAN OFF");
+            if (temperature < 30 && humid < 67) {
+                fan_state = false;
+            }
+
+            if (fan_state) {
+                Serial.printf("-> FAN ON");
+            }
+            else {
+                Serial.printf(" -> FAN OFF");
             }
         }
         vTaskDelay(1000);
