@@ -1,6 +1,7 @@
 #include "Task_FanControl.h"
 
 void TaskFanControl(void* parameters) {
+    vTaskDelay(1000);
     bool fan_state = false;
     while (1) {
         //Wait for signal from 'temp/himid monitor' task
