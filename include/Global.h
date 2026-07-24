@@ -12,6 +12,7 @@
 #include <Preferences.h>
 #include <WebServer.h>
 #include <DNSServer.h>
+#include <ESPmDNS.h>
 
 #define LED_PIN 2
 

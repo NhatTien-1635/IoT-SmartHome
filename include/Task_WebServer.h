@@ -9,8 +9,16 @@ void SetUpAP();
 void HandleWiFiEvent(WiFiEvent_t);
 
 void HandleRoot();
+void HandleSave();
 
 void SetUpSTA();
 
-void ListLittleFSFiles();
+void SaveWifiCredentials();
+bool LoadWifiCredentials();
+void ClearWifiCredentials();
+
+void SetUpServerModeAP();
+void SetUpServerModeSTA();
+
+void MountLittleFS();
 #endif
