@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP32 Dashboard</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f9;
+            color: #333333;
+        }
+
+        .title {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .wifi-corner-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background-color: #6c757d;
+            color: white;
+            padding: 8px 12px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .wifi-corner-btn:hover {
+            background-color: #5a6268;
+        }
+
+        .card-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            padding: 10px;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            width: 150px;
+            text-align: center;
+        }
+
+        .btn {
+            display: inline-block;
+            background-color: #007bff;
+            color: white;
+            padding: 10px 15px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            box-sizing: border-box;
+        }
+
+        .btn:hover {
+            background-color: #0056b3;
+        }
+
+        .btn-off {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        .btn-off:hover {
+            background-color: #5a6268;
+        }
+
+        .btn-on {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .btn-on:hover {
+            background-color: #0056b3;
+        }
+
+        .btn-auto {
+            background-color: #52b788;
+            color: white;
+        }
+
+        .btn-auto:hover {
+            background-color: #40916c;
+        }
+    </style>
+</head>
+
+<body>
+    <h1 class="title">ESP32 Dashboard</h1>
+
+    <a href="/wifi" class="wifi-corner-btn">⚙️ Wi-Fi Setup</a>
+
+    <div class="card-container">
+        <div class="card">
+            <h3>Temperature</h3>
+            <p id="tempVal">--°C</p>
+        </div>
+
+        <div class="card">
+            <h3>Humidity</h3>
+            <p id="humidVal">--%</p>
+        </div>
+
+        <div class="card">
+            <h3>Fan Control</h3>
+            <button id="fanBTN" class="btn btn-off" onclick="toggleFan()">OFF</button>
+        </div>
+    </div>
+
+    <script>
+        function toggleFan() {
+            fetch('/toggleFan', { method: 'POST' })
+                .then(response => response.text())
+                .then(state => {
+                    const btn = document.getElementById('fanBTN');
+
+                    if (state === "ON") {
+                        btn.innerText = "ON";
+                        btn.className = "btn btn-on";
+                    }
+
+                    if (state === "OFF") {
+                        btn.innerText = "OFF";
+                        btn.className = "btn btn-off";
+                    }
+
+                    if (state === "AUTO") {
+                        btn.innerText = "AUTO";
+                        btn.className = "btn btn-auto";
+                    }
+                })
+                .catch(error => {
+                    console.error("Can't reach ESP32", error);
+                })
+        }
+
+        function fetchSensorData() {
+            fetch('/api/sensors')
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('tempVal').innerText = `${data.temp} °C`;
+                    document.getElementById('humidVal').innerText = `${data.humidity} %`;
+                })
+                .catch(err => console.error("Sensor fetch error:", err));
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            fetchSensorData();
+
+            setInterval(fetchSensorData, 2500);
+        });
+    </script>
+</body>
+
+</html>

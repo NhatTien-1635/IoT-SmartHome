@@ -10,16 +10,10 @@ static String ssid;
 static String pass;
 
 static Preferences preference;
+static bool mounted = false;
 
 void TaskWebServer(void* parameter) {
-    if (LoadWifiCredentials()) {
-        Serial.println("\nWifi found! Attempting to connect to: " + ssid);
-        SetUpSTA();
-    }
-    else {
-        Serial.println("\nWifi not found! Starting Access Point mode at: " + String(AP_SSID) + ", Password: " + String(AP_PASS));
-        SetUpAP();
-    }
+    SetUpWifi();
 
     while (1) {
         if (dns_active) {
@@ -30,13 +24,26 @@ void TaskWebServer(void* parameter) {
 
         if (pending_connect) {
             vTaskDelay(500);
-            SetUpSTA();
+
+            //Reset to old wifi or go back to AP mode
+            SetUpWifi();
             pending_connect = false;
         }
 
         vTaskDelay(10);
     }
 
+}
+
+void SetUpWifi() {
+    if (LoadWifiCredentials()) {
+        Serial.println("\nWifi found! Attempting to connect to: " + ssid);
+        SetUpSTA();
+    }
+    else {
+        Serial.println("\nWifi not found! Starting Access Point mode at: " + String(AP_SSID) + ", Password: " + String(AP_PASS));
+        SetUpAP();
+    }
 }
 
 void SetUpAP() {
@@ -48,44 +55,6 @@ void SetUpAP() {
     SetUpServerModeAP();
 
     Serial.println("\nStarting ACCESS POINT mode! Default IP: " + WiFi.softAPIP().toString());
-}
-
-void HandleWiFiEvent(WiFiEvent_t event) {
-    switch (event) {
-    case ARDUINO_EVENT_WIFI_AP_STACONNECTED:
-        Serial.println("\nA device has connected to the WiFi");
-        break;
-
-    case ARDUINO_EVENT_WIFI_AP_STADISCONNECTED:
-        Serial.println("\nA device has disconnected to the WiFi");
-        break;
-    }
-}
-
-void HandleRoot() {
-    if (LittleFS.exists("/index.html")) {
-        File file = LittleFS.open("/index.html", "r");
-        web_server.streamFile(file, "text/html");
-        file.close();
-    }
-    else {
-        web_server.send(404, "text/plain", "File not found");
-    }
-}
-
-void HandleSave() {
-    if (web_server.hasArg("ssid")) {
-        ssid = web_server.arg("ssid");
-        pass = web_server.hasArg("pass") ? web_server.arg("pass") : "";
-
-        web_server.send(200, "text/plain", "Credential recieved! Attempting to connect...");
-
-        //Wait for response
-        pending_connect = true;
-    }
-    else {
-        web_server.send(404, "text/plain", "Missing SSID!");
-    }
 }
 
 void SetUpSTA() {
@@ -148,16 +117,16 @@ void ClearWifiCredentials() {
 
 void SetUpServerModeAP() {
     MountLittleFS();
-    
+
     dns_server.start(53, "*", WiFi.softAPIP());
     dns_active = true;
 
-    web_server.on("/", HandleRoot);
+    web_server.on("/", HandleConfigWifi);
     web_server.on("/save", HandleSave);
     web_server.begin();
 
     //DNS send back here
-    web_server.onNotFound(HandleRoot);
+    web_server.onNotFound(HandleConfigWifi);
 }
 
 void SetUpServerModeSTA() {
@@ -168,19 +137,97 @@ void SetUpServerModeSTA() {
         dns_active = false;
     }
 
-    web_server.on("/", HandleRoot);
+    web_server.on("/", []() {
+        if (LittleFS.exists("/dashboard.html")) {
+            File file = LittleFS.open("/dashboard.html", "r");
+            web_server.streamFile(file, "text/html");
+            file.close();
+
+        }
+        else {
+            web_server.send(404, "text/plain", "File not found!");
+        }
+        });
+
+    web_server.on("/wifi", HandleConfigWifi);
+
     web_server.on("/save", HandleSave);
+
+    web_server.on("/toggleFan", HandleToggleFan);
+
+    web_server.on("/api/sensors", HandlingSendingSensorValue);
+
     web_server.begin();
 
-    //DNS send back here
-    web_server.onNotFound(HandleRoot);
+    web_server.onNotFound([]() {
+        web_server.send(404, "text/plain", "404: Page Not Found");
+        });
 }
 
 void MountLittleFS() {
-    if (!LittleFS.begin(true)) {
-        Serial.println("Error: LittleFS is not mounted!");
+    if (!mounted) {
+        if (!LittleFS.begin(true)) {
+            Serial.println("Error: LittleFS is not mounted!");
+        }
+        else {
+            Serial.println("LittleFS mounted successfully!");
+        }
+        mounted = true;
+    }
+}
+
+void HandleWiFiEvent(WiFiEvent_t event) {
+    switch (event) {
+    case ARDUINO_EVENT_WIFI_AP_STACONNECTED:
+        Serial.println("\nA device has connected to the WiFi");
+        break;
+
+    case ARDUINO_EVENT_WIFI_AP_STADISCONNECTED:
+        Serial.println("\nA device has disconnected to the WiFi");
+        break;
+    }
+}
+
+void HandleConfigWifi() {
+    if (LittleFS.exists("/wifi_config.html")) {
+        File file = LittleFS.open("/wifi_config.html", "r");
+        web_server.streamFile(file, "text/html");
+        file.close();
     }
     else {
-        Serial.println("LittleFS mounted successfully!");
+        web_server.send(404, "text/plain", "File not found");
     }
+}
+
+void HandleSave() {
+    if (web_server.hasArg("ssid")) {
+        ssid = web_server.arg("ssid");
+        pass = web_server.hasArg("pass") ? web_server.arg("pass") : "";
+
+        web_server.send(200, "text/plain", "Credential recieved! Attempting to connect...");
+
+        //Wait for response
+        pending_connect = true;
+    }
+    else {
+        web_server.send(404, "text/plain", "Missing SSID!");
+    }
+}
+
+void HandleToggleFan() {
+    fan_state = next_fan_state[fan_state];
+
+    web_server.send(200, "text/plain", fan_state_string[fan_state]);
+}
+
+void HandlingSendingSensorValue() {
+    JsonDocument doc;
+    doc["temp"] = temperature[read_pointer];
+    doc["humidity"] = humid[read_pointer];
+
+    String response;
+
+    serializeJson(doc, response);
+
+    web_server.send(200, "application/json", response.c_str());
 }

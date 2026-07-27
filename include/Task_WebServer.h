@@ -5,11 +5,15 @@
 
 void TaskWebServer(void*);
 
+void SetUpWifi();
+
 void SetUpAP();
 void HandleWiFiEvent(WiFiEvent_t);
 
-void HandleRoot();
+void HandleConfigWifi();
 void HandleSave();
+void HandleToggleFan();
+void HandlingSendingSensorValue();
 
 void SetUpSTA();
 

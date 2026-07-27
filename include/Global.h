@@ -13,6 +13,7 @@
 #include <WebServer.h>
 #include <DNSServer.h>
 #include <ESPmDNS.h>
+#include <ArduinoJson.h>
 
 #define LED_PIN 2
 
@@ -22,11 +23,20 @@
 #define AP_SSID "ESP32-AccessPoint"
 #define AP_PASS "12345678"
 
-extern SemaphoreHandle_t dht_semaphore;
-extern float temperature;
-extern float humid;
+#define FAN_STATE_OFF 0
+#define FAN_STATE_ON 1
+#define FAN_STATE_AUTO 2
 
-extern int debug_timer;
+constexpr int next_fan_state[3] = {FAN_STATE_ON, FAN_STATE_AUTO, FAN_STATE_OFF};
+extern const char* fan_state_string[3];
+
+extern volatile int fan_state;
+
+extern int read_pointer;
+extern float temperature[2];
+extern float humid[2];
+
+extern int log_timer;
 
 
 #endif

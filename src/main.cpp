@@ -3,17 +3,9 @@
 #include "Task_FanControl.h"
 #include "Task_WebServer.h"
 
-/**
- *  Initialize global variables 
- **/
-SemaphoreHandle_t dht_semaphore = NULL;
-float temperature = 0.0;
-float humid = 0.0;
-int debug_timer = 0;
 
 void setup() {
   Serial.begin(115200);
-  dht_semaphore = xSemaphoreCreateBinary();
 
   xTaskCreate(TaskBlinkLED, "Blinking LED", 2048, NULL, 0, NULL);
   xTaskCreate(TaskMonitorDHT, "Monitor Temperature & Humidity", 2048, NULL, 2, NULL);
