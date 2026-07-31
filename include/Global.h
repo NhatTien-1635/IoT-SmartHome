@@ -38,5 +38,6 @@ extern float humid[2];
 
 extern int log_timer;
 
+extern float inference;
 
 #endif
